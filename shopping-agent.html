@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ShopAI — Intelligent Shopping Agent</title>
+<style>
+/* ===== RESET & VARIABLES ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f10;--sidebar:#1a1a1d;--surface:#1e1e22;--surface2:#27272c;
+  --border:#2e2e35;--text:#e8e8ee;--muted:#8a8a9a;--accent:#6c63ff;
+  --accent2:#a78bfa;--user-bubble:#6c63ff;--ai-bubble:#1e1e22;
+  --green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6;
+  --radius:12px;--font:'Segoe UI',system-ui,sans-serif;
+  --shadow:0 4px 24px rgba(0,0,0,.4);--trans:.18s ease;
+}
+[data-theme="light"]{
+  --bg:#f5f5f7;--sidebar:#ffffff;--surface:#ffffff;--surface2:#f0f0f5;
+  --border:#e0e0e8;--text:#1a1a2e;--muted:#6b6b80;--user-bubble:#6c63ff;
+  --ai-bubble:#ffffff;--shadow:0 4px 24px rgba(0,0,0,.1);
+}
+html,body{height:100%;overflow:hidden;font-family:var(--font);background:var(--bg);color:var(--text);}
+
+/* ===== LAYOUT ===== */
+#app{display:flex;height:100vh;width:100vw;overflow:hidden;}
+
+/* ===== SIDEBAR ===== */
+#sidebar{
+  width:260px;min-width:260px;background:var(--sidebar);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;transition:transform var(--trans);z-index:100;
+}
+#sidebar-header{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+#sidebar-logo{font-size:22px;font-weight:700;background:linear-gradient(135deg,#6c63ff,#a78bfa);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+#new-chat-btn{
+  margin:12px;padding:10px 14px;background:var(--accent);color:#fff;border:none;
+  border-radius:var(--radius);cursor:pointer;font-size:14px;font-weight:600;
+  display:flex;align-items:center;gap:8px;transition:opacity var(--trans);
+}
+#new-chat-btn:hover{opacity:.85;}
+#chat-list{flex:1;overflow-y:auto;padding:8px;}
+.chat-item{
+  padding:10px 12px;border-radius:8px;cursor:pointer;font-size:13px;
+  color:var(--muted);margin-bottom:2px;transition:background var(--trans);
+  display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.chat-item:hover,.chat-item.active{background:var(--surface2);color:var(--text);}
+.chat-item .chat-icon{font-size:15px;flex-shrink:0;}
+#sidebar-footer{padding:12px;border-top:1px solid var(--border);}
+.api-section{margin-bottom:10px;}
+.api-section label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;}
+#api-key-input{
+  width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:12px;outline:none;
+}
+#api-key-input:focus{border-color:var(--accent);}
+.model-select{
+  width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:12px;outline:none;cursor:pointer;
+}
+.sidebar-actions{display:flex;gap:8px;margin-top:10px;}
+.icon-btn{
+  flex:1;padding:8px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;color:var(--muted);cursor:pointer;font-size:12px;
+  display:flex;align-items:center;justify-content:center;gap:5px;transition:all var(--trans);
+}
+.icon-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+/* ===== MAIN CHAT ===== */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ===== TOP BAR ===== */
+#topbar{
+  padding:12px 20px;border-bottom:1px solid var(--border);background:var(--sidebar);
+  display:flex;align-items:center;gap:12px;
+}
+#menu-btn{
+  display:none;background:none;border:none;color:var(--text);font-size:20px;cursor:pointer;padding:4px;
+}
+#topbar-title{font-weight:600;font-size:15px;flex:1;}
+#topbar-subtitle{font-size:12px;color:var(--muted);}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.tb-btn{
+  padding:7px 14px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:12px;cursor:pointer;
+  display:flex;align-items:center;gap:6px;transition:all var(--trans);white-space:nowrap;
+}
+.tb-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+#theme-toggle{font-size:16px;padding:7px 10px;}
+
+/* ===== CHAT AREA ===== */
+#chat-area{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;}
+#chat-area::-webkit-scrollbar{width:4px;}
+#chat-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+/* ===== WELCOME ===== */
+#welcome{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  flex:1;text-align:center;padding:40px 20px;
+}
+#welcome h1{font-size:28px;font-weight:700;margin-bottom:8px;
+  background:linear-gradient(135deg,#6c63ff,#a78bfa,#06b6d4);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+#welcome p{color:var(--muted);font-size:15px;margin-bottom:32px;max-width:480px;}
+.suggestion-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;max-width:600px;width:100%;}
+.suggestion-card{
+  padding:14px 16px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);cursor:pointer;text-align:left;font-size:13px;
+  transition:all var(--trans);color:var(--text);
+}
+.suggestion-card:hover{border-color:var(--accent);background:var(--surface2);transform:translateY(-2px);}
+.suggestion-card .s-icon{font-size:18px;margin-bottom:6px;display:block;}
+.suggestion-card .s-title{font-weight:600;margin-bottom:3px;font-size:13px;}
+.suggestion-card .s-desc{color:var(--muted);font-size:12px;}
+
+/* ===== MESSAGES ===== */
+.msg-row{display:flex;gap:12px;animation:fadeUp .3s ease;}
+.msg-row.user{flex-direction:row-reverse;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.avatar{
+  width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;
+  align-items:center;justify-content:center;font-size:15px;font-weight:700;
+}
+.avatar.ai{background:linear-gradient(135deg,#6c63ff,#a78bfa);}
+.avatar.user{background:linear-gradient(135deg,#06b6d4,#3b82f6);color:#fff;}
+.msg-bubble{
+  max-width:75%;padding:14px 16px;border-radius:var(--radius);
+  font-size:14px;line-height:1.7;position:relative;
+}
+.msg-row.ai .msg-bubble{background:var(--ai-bubble);border:1px solid var(--border);}
+.msg-row.user .msg-bubble{background:var(--user-bubble);color:#fff;border:none;}
+.msg-meta{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.msg-time{font-size:11px;color:var(--muted);}
+.copy-btn{
+  font-size:11px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:5px;cursor:pointer;color:var(--muted);transition:all var(--trans);
+}
+.copy-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+/* ===== MARKDOWN & CODE ===== */
+.msg-bubble h1,.msg-bubble h2,.msg-bubble h3{font-weight:700;margin:12px 0 6px;color:var(--text);}
+.msg-bubble h1{font-size:18px;}.msg-bubble h2{font-size:16px;}.msg-bubble h3{font-size:14px;}
+.msg-bubble p{margin-bottom:8px;}
+.msg-bubble ul,.msg-bubble ol{margin:8px 0 8px 20px;}
+.msg-bubble li{margin-bottom:4px;}
+.msg-bubble strong{font-weight:700;color:var(--accent2);}
+.msg-bubble em{font-style:italic;color:var(--muted);}
+.msg-bubble a{color:var(--accent);text-decoration:none;}
+.msg-bubble a:hover{text-decoration:underline;}
+.msg-bubble blockquote{
+  border-left:3px solid var(--accent);padding-left:12px;margin:8px 0;
+  color:var(--muted);font-style:italic;
+}
+.msg-bubble table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px;}
+.msg-bubble th{background:var(--surface2);padding:8px 10px;text-align:left;border:1px solid var(--border);font-weight:600;}
+.msg-bubble td{padding:7px 10px;border:1px solid var(--border);}
+.msg-bubble tr:nth-child(even) td{background:rgba(108,99,255,.05);}
+.code-block{position:relative;margin:10px 0;}
+.code-block pre{
+  background:#0d0d10;border:1px solid var(--border);border-radius:8px;
+  padding:14px;overflow-x:auto;font-size:13px;font-family:'Consolas','Courier New',monospace;
+  line-height:1.5;color:#e2e8f0;
+}
+[data-theme="light"] .code-block pre{background:#1e1e2e;color:#cdd6f4;}
+.code-lang{
+  position:absolute;top:8px;right:42px;font-size:11px;color:var(--muted);
+  background:var(--surface2);padding:2px 7px;border-radius:4px;
+}
+.code-copy{
+  position:absolute;top:6px;right:8px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:6px;color:var(--muted);padding:4px 8px;font-size:11px;cursor:pointer;transition:all var(--trans);
+}
+.code-copy:hover{background:var(--accent);color:#fff;}
+.inline-code{
+  background:var(--surface2);padding:2px 6px;border-radius:4px;
+  font-family:'Consolas',monospace;font-size:13px;color:var(--accent2);
+}
+
+/* ===== PRODUCT CARDS ===== */
+.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:12px 0;}
+.product-card{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px;transition:all var(--trans);cursor:pointer;
+}
+.product-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow);}
+.product-card .pc-name{font-weight:600;font-size:13px;margin-bottom:6px;color:var(--text);}
+.product-card .pc-price{font-size:18px;font-weight:700;color:var(--green);margin-bottom:4px;}
+.product-card .pc-old{font-size:12px;color:var(--muted);text-decoration:line-through;}
+.product-card .pc-rating{font-size:12px;color:var(--yellow);margin-bottom:4px;}
+.product-card .pc-tag{
+  display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;
+  background:rgba(108,99,255,.2);color:var(--accent2);margin-top:6px;
+}
+.product-card .pc-badge{
+  display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;margin-left:4px;
+}
+.badge-deal{background:rgba(34,197,94,.15);color:var(--green);}
+.badge-trending{background:rgba(245,158,11,.15);color:var(--yellow);}
+.badge-eco{background:rgba(6,182,212,.15);color:#06b6d4;}
+
+/* ===== COMPARISON TABLE ===== */
+.compare-table-wrap{overflow-x:auto;margin:12px 0;}
+.compare-table{min-width:500px;width:100%;border-collapse:collapse;font-size:13px;}
+.compare-table th{background:var(--accent);color:#fff;padding:10px 12px;text-align:center;}
+.compare-table th:first-child{text-align:left;}
+.compare-table td{padding:9px 12px;border:1px solid var(--border);text-align:center;}
+.compare-table td:first-child{font-weight:600;text-align:left;background:var(--surface2);}
+.compare-table tr:hover td{background:rgba(108,99,255,.06);}
+.check{color:var(--green);}.cross{color:var(--red);}
+
+/* ===== PRICE CHART ===== */
+.price-chart{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin:10px 0;}
+.price-chart .chart-title{font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text);}
+.chart-svg{width:100%;height:120px;}
+
+/* ===== INSIGHTS BAR ===== */
+.insight-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;}
+.insight-chip{
+  padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;
+  display:flex;align-items:center;gap:5px;
+}
+.chip-green{background:rgba(34,197,94,.15);color:var(--green);}
+.chip-yellow{background:rgba(245,158,11,.15);color:var(--yellow);}
+.chip-blue{background:rgba(59,130,246,.15);color:var(--blue);}
+.chip-purple{background:rgba(108,99,255,.15);color:var(--accent2);}
+.chip-red{background:rgba(239,68,68,.15);color:var(--red);}
+
+/* ===== TYPING INDICATOR ===== */
+.typing-bubble{display:flex;align-items:center;gap:5px;padding:14px 16px;background:var(--ai-bubble);border:1px solid var(--border);border-radius:var(--radius);width:fit-content;}
+.typing-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:typingBounce 1.2s infinite;}
+.typing-dot:nth-child(2){animation-delay:.2s;}
+.typing-dot:nth-child(3){animation-delay:.4s;}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+/* ===== IMAGE PREVIEW ===== */
+.uploaded-img{max-width:240px;border-radius:8px;margin-top:8px;border:1px solid var(--border);}
+
+/* ===== INPUT AREA ===== */
+#input-area{
+  padding:16px 20px;border-top:1px solid var(--border);background:var(--sidebar);
+}
+.input-toolbar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.tool-chip{
+  padding:5px 12px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:20px;font-size:12px;color:var(--muted);cursor:pointer;
+  display:flex;align-items:center;gap:5px;transition:all var(--trans);white-space:nowrap;
+}
+.tool-chip:hover,.tool-chip.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.input-box{
+  display:flex;align-items:flex-end;gap:10px;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;
+  transition:border-color var(--trans);
+}
+.input-box:focus-within{border-color:var(--accent);}
+#msg-input{
+  flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px;
+  resize:none;max-height:160px;min-height:24px;line-height:1.5;font-family:var(--font);
+}
+#msg-input::placeholder{color:var(--muted);}
+.input-actions{display:flex;align-items:center;gap:6px;}
+.ia-btn{
+  width:34px;height:34px;border-radius:8px;border:none;background:var(--surface2);
+  color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:16px;transition:all var(--trans);flex-shrink:0;
+}
+.ia-btn:hover{background:var(--accent);color:#fff;}
+.ia-btn.active{background:var(--red);color:#fff;}
+#send-btn{
+  width:36px;height:36px;border-radius:8px;border:none;
+  background:var(--accent);color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  transition:all var(--trans);flex-shrink:0;
+}
+#send-btn:hover{opacity:.85;}
+#send-btn:disabled{opacity:.4;cursor:not-allowed;}
+#img-preview-area{margin-bottom:8px;display:none;}
+#img-preview-area img{width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid var(--border);}
+#remove-img{
+  background:var(--red);color:#fff;border:none;border-radius:50%;
+  width:18px;height:18px;font-size:11px;cursor:pointer;margin-left:6px;
+  display:inline-flex;align-items:center;justify-content:center;vertical-align:top;
+}
+.char-count{font-size:11px;color:var(--muted);text-align:right;margin-top:4px;}
+
+/* ===== TOAST ===== */
+#toast{
+  position:fixed;bottom:80px;right:20px;padding:10px 16px;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  font-size:13px;color:var(--text);box-shadow:var(--shadow);
+  transform:translateY(20px);opacity:0;transition:all .3s ease;pointer-events:none;z-index:999;
+}
+#toast.show{transform:translateY(0);opacity:1;}
+
+/* ===== OVERLAY ===== */
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;display:none;}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:768px){
+  #sidebar{position:fixed;top:0;left:0;height:100%;transform:translateX(-100%);box-shadow:var(--shadow);}
+  #sidebar.open{transform:translateX(0);}
+  #overlay.show{display:block;}
+  #menu-btn{display:flex;}
+  .suggestion-grid{grid-template-columns:1fr 1fr;}
+  .product-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));}
+  .msg-bubble{max-width:90%;}
+}
+@media(max-width:480px){
+  .suggestion-grid{grid-template-columns:1fr;}
+  .topbar-right .tb-btn span{display:none;}
+  #chat-area{padding:12px;}
+  .input-toolbar{display:none;}
+}
+
+/* ===== SCROLLBAR ===== */
+*::-webkit-scrollbar{width:4px;height:4px;}
+*::-webkit-scrollbar-track{background:transparent;}
+*::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div id="sidebar-header">
+      <span id="sidebar-logo">🛍 ShopAI</span>
+    </div>
+    <button id="new-chat-btn" onclick="newChat()">
+      <span>✏️</span> New Chat
+    </button>
+    <div id="chat-list"></div>
+    <div id="sidebar-footer">
+      <div class="api-section">
+        <label>GROQ API Key</label>
+        <input type="password" id="api-key-input" placeholder="gsk_..." value="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"/>
+      </div>
+      <div class="api-section">
+        <label>Model</label>
+        <select id="model-select" class="model-select">
+          <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+          <option value="llama-3.1-8b-instant">Llama 3.1 8B (Fast)</option>
+          <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+          <option value="gemma2-9b-it">Gemma2 9B</option>
+        </select>
+      </div>
+      <div class="sidebar-actions">
+        <button class="icon-btn" onclick="exportChat()">📥 Export</button>
+        <button class="icon-btn" onclick="clearAllChats()">🗑 Clear</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- OVERLAY -->
+  <div id="overlay" onclick="closeSidebar()"></div>
+
+  <!-- MAIN -->
+  <main id="main">
+    <!-- TOPBAR -->
+    <div id="topbar">
+      <button id="menu-btn" onclick="toggleSidebar()">☰</button>
+      <div>
+        <div id="topbar-title">🛍 ShopAI — Intelligent Shopping Agent</div>
+        <div id="topbar-subtitle">Powered by GROQ · LLM Shopping Intelligence</div>
+      </div>
+      <div class="topbar-right">
+        <button class="tb-btn" onclick="showQuickCompare()"><span>⚖️</span><span>Compare</span></button>
+        <button class="tb-btn" onclick="showTrending()"><span>🔥</span><span>Trending</span></button>
+        <button class="tb-btn" id="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">🌙</button>
+      </div>
+    </div>
+
+    <!-- CHAT AREA -->
+    <div id="chat-area">
+      <div id="welcome">
+        <h1>Your AI Shopping Assistant</h1>
+        <p>Compare prices, detect fake reviews, predict price drops, find best deals, and get personalised buying advice — all in one place.</p>
+        <div class="suggestion-grid">
+          <div class="suggestion-card" onclick="useSuggestion(this)">
+            <span class="s-icon">🔍</span>
+            <div class="s-title">Find Best Laptop Under ₹60,000</div>
+            <div class="s-desc">Compare top models with ratings & reviews</div>
+          </div>
+          <div class="suggestion-card" onclick="useSuggestion(this)">
+            <span class="s-icon">📉</span>
+            <div class="s-title">Predict iPhone 15 Price Drop</div>
+            <div class="s-desc">Best time to buy with seasonal analysis</div>
+          </div>
+          <div class="suggestion-card" onclick="useSuggestion(this)">
+            <span class="s-icon">⭐</span>
+            <div class="s-title">Detect Fake Reviews on Amazon</div>
+            <div class="s-desc">AI analysis of review authenticity</div>
+          </div>
+          <div class="suggestion-card" onclick="useSuggestion(this)">
+            <span class="s-icon">🌱</span>
+            <div class="s-title">Sustainable Headphones Under ₹5,000</div>
+            <div class="s-desc">Eco-friendly picks with carbon insights</div>
+          </div>
+          <div class="suggestion-card" onclick="useSuggestion(this)">
+            <span class="s-icon">🔥</span>
+            <div class="s-title">What's Trending in Electronics Today?</div>
+            <div class="s-desc">Top trending gadgets this week</div>
+          </div>
+          <div class="suggestion-card" onclick="useSuggestion(this)">
+            <span class="s-icon">🛒</span>
+            <div class="s-title">Build a Smart Home Setup Under ₹20,000</div>
+            <div class="s-desc">Curated personalised shopping list</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INPUT AREA -->
+    <div id="input-area">
+      <div class="input-toolbar">
+        <div class="tool-chip" onclick="setMode('compare')">⚖️ Compare</div>
+        <div class="tool-chip" onclick="setMode('price')">📉 Price History</div>
+        <div class="tool-chip" onclick="setMode('reviews')">⭐ Review Analysis</div>
+        <div class="tool-chip" onclick="setMode('deals')">🏷️ Best Deals</div>
+        <div class="tool-chip" onclick="setMode('sustainable')">🌱 Eco Picks</div>
+        <div class="tool-chip" onclick="setMode('list')">🛒 Shopping List</div>
+      </div>
+      <div id="img-preview-area">
+        <img id="img-preview-thumb" src="" alt="preview"/>
+        <button id="remove-img" onclick="removeImage()">✕</button>
+      </div>
+      <div class="input-box">
+        <textarea id="msg-input" rows="1" placeholder="Ask about any product — search, compare, or get recommendations..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <div class="input-actions">
+          <button class="ia-btn" id="img-btn" title="Upload Image" onclick="document.getElementById('file-input').click()">🖼</button>
+          <button class="ia-btn" id="voice-btn" title="Voice Input" onclick="toggleVoice()">🎤</button>
+          <button id="send-btn" onclick="sendMessage()" title="Send">➤</button>
+        </div>
+      </div>
+      <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleImageUpload(event)"/>
+      <div class="char-count" id="char-count">0 / 4000</div>
+    </div>
+  </main>
+</div>
+
+<div id="toast">✓ Copied!</div>
+
+<script>
+// ============================================================
+// STATE MANAGEMENT
+// ============================================================
+const STATE = {
+  chats: JSON.parse(localStorage.getItem('shopai_chats') || '[]'),
+  currentChatId: null,
+  isStreaming: false,
+  uploadedImage: null,
+  uploadedImageName: null,
+  voiceActive: false,
+  activeMode: null,
+  recognition: null
+};
+
+// System prompt for the shopping agent
+const SYSTEM_PROMPT = `You are ShopAI, an expert Intelligent Shopping Agent with deep knowledge of products, pricing, and consumer behavior. You help users:
+
+1. **Find & Compare Products**: Search, compare specs, prices across Amazon, Flipkart, Snapdeal, Myntra, etc.
+2. **Price Analysis**: Predict price drops, identify best buying times, seasonal discounts (Big Billion Days, Prime Day, etc.)
+3. **Review Intelligence**: Detect fake/manipulated reviews, analyze sentiment, highlight pros/cons.
+4. **Recommendations**: Suggest alternatives, budget options, premium upgrades, eco-friendly alternatives.
+5. **Shopping Lists**: Curate personalised shopping lists based on needs and budget.
+6. **Sustainability**: Highlight carbon footprint, eco certifications, sustainable brands.
+7. **Trending Products**: Surface trending, viral, and editor's choice products.
+8. **Deals & Offers**: Bank offers, coupon codes, cashback, EMI options.
+
+**Response Formatting**:
+- Use markdown with **bold**, *italic*, tables, bullet lists
+- Present products in structured format with ₹ prices, ratings (⭐), and key specs
+- Use emojis for better readability (🔥 for hot deals, ✅ for recommended, ⚠️ for cautions)
+- For comparisons, use markdown tables
+- Always mention: Price Range, Rating, Key Pros & Cons, Where to Buy, Deal Alert
+- For price predictions, describe historical trends and best buying windows
+- For fake review detection, list red flags clearly
+- Keep responses helpful, concise, and data-driven
+- When images are shared, analyze the product and provide relevant buying advice
+
+Always be specific, practical, and genuinely helpful. Your goal is to save users money and help them make smart purchasing decisions.`;
+
+// ============================================================
+// CHAT MANAGEMENT
+// ============================================================
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function saveChats() {
+  localStorage.setItem('shopai_chats', JSON.stringify(STATE.chats));
+}
+
+function newChat() {
+  const chat = {
+    id: generateId(),
+    title: 'New Chat',
+    messages: [],
+    created: Date.now()
+  };
+  STATE.chats.unshift(chat);
+  STATE.currentChatId = chat.id;
+  saveChats();
+  renderChatList();
+  renderMessages();
+  closeSidebar();
+}
+
+function loadChat(id) {
+  STATE.currentChatId = id;
+  renderChatList();
+  renderMessages();
+  closeSidebar();
+}
+
+function getCurrentChat() {
+  return STATE.chats.find(c => c.id === STATE.currentChatId);
+}
+
+function clearAllChats() {
+  if (!confirm('Clear all chat history?')) return;
+  STATE.chats = [];
+  STATE.currentChatId = null;
+  saveChats();
+  renderChatList();
+  renderMessages();
+}
+
+function renderChatList() {
+  const list = document.getElementById('chat-list');
+  if (!STATE.chats.length) {
+    list.innerHTML = '<div style="padding:12px;color:var(--muted);font-size:12px;text-align:center;">No chats yet</div>';
+    return;
+  }
+  list.innerHTML = STATE.chats.map(c => `
+    <div class="chat-item ${c.id === STATE.currentChatId ? 'active' : ''}" onclick="loadChat('${c.id}')">
+      <span class="chat-icon">💬</span>
+      <span style="overflow:hidden;text-overflow:ellipsis;">${escapeHtml(c.title)}</span>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// RENDER MESSAGES
+// ============================================================
+function renderMessages() {
+  const area = document.getElementById('chat-area');
+  const chat = getCurrentChat();
+
+  if (!chat || chat.messages.length === 0) {
+    area.innerHTML = document.getElementById('welcome') ? area.innerHTML : '';
+    // Show welcome if no chat active
+    if (!STATE.currentChatId || !chat || chat.messages.length === 0) {
+      showWelcome();
+    }
+    return;
+  }
+
+  area.innerHTML = '';
+  chat.messages.forEach(msg => {
+    const el = createMessageElement(msg.role, msg.content, msg.time, msg.image);
+    area.appendChild(el);
+  });
+  scrollToBottom();
+}
+
+function showWelcome() {
+  const area = document.getElementById('chat-area');
+  area.innerHTML = `
+    <div id="welcome">
+      <h1>Your AI Shopping Assistant</h1>
+      <p>Compare prices, detect fake reviews, predict price drops, find best deals, and get personalised buying advice — all in one place.</p>
+      <div class="suggestion-grid">
+        <div class="suggestion-card" onclick="useSuggestion(this)">
+          <span class="s-icon">🔍</span>
+          <div class="s-title">Find Best Laptop Under ₹60,000</div>
+          <div class="s-desc">Compare top models with ratings & reviews</div>
+        </div>
+        <div class="suggestion-card" onclick="useSuggestion(this)">
+          <span class="s-icon">📉</span>
+          <div class="s-title">Predict iPhone 15 Price Drop</div>
+          <div class="s-desc">Best time to buy with seasonal analysis</div>
+        </div>
+        <div class="suggestion-card" onclick="useSuggestion(this)">
+          <span class="s-icon">⭐</span>
+          <div class="s-title">Detect Fake Reviews on Amazon</div>
+          <div class="s-desc">AI analysis of review authenticity</div>
+        </div>
+        <div class="suggestion-card" onclick="useSuggestion(this)">
+          <span class="s-icon">🌱</span>
+          <div class="s-title">Sustainable Headphones Under ₹5,000</div>
+          <div class="s-desc">Eco-friendly picks with carbon insights</div>
+        </div>
+        <div class="suggestion-card" onclick="useSuggestion(this)">
+          <span class="s-icon">🔥</span>
+          <div class="s-title">What's Trending in Electronics Today?</div>
+          <div class="s-desc">Top trending gadgets this week</div>
+        </div>
+        <div class="suggestion-card" onclick="useSuggestion(this)">
+          <span class="s-icon">🛒</span>
+          <div class="s-title">Build a Smart Home Setup Under ₹20,000</div>
+          <div class="s-desc">Curated personalised shopping list</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+// MESSAGE ELEMENT CREATION
+// ============================================================
+function createMessageElement(role, content, time, imageData) {
+  const row = document.createElement('div');
+  row.className = `msg-row ${role}`;
+
+  const isAI = role === 'ai' || role === 'assistant';
+  const avatar = `<div class="avatar ${isAI ? 'ai' : 'user'}">${isAI ? '🛍' : '👤'}</div>`;
+  const timeStr = time ? new Date(time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+
+  const renderedContent = isAI ? renderMarkdown(content) : `<p>${escapeHtml(content)}</p>`;
+  const imgHtml = imageData ? `<img src="${imageData}" class="uploaded-img" alt="uploaded"/>` : '';
+
+  row.innerHTML = `
+    ${avatar}
+    <div>
+      <div class="msg-bubble">${imgHtml}${renderedContent}</div>
+      <div class="msg-meta">
+        <span class="msg-time">${timeStr}</span>
+        <button class="copy-btn" onclick="copyText(this, \`${escapeBtick(content)}\`)">Copy</button>
+      </div>
+    </div>`;
+
+  return row;
+}
+
+function escapeBtick(s) {
+  return (s || '').replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
+}
+
+// ============================================================
+// MARKDOWN RENDERER
+// ============================================================
+function renderMarkdown(text) {
+  if (!text) return '';
+  let html = escapeHtml(text);
+
+  // Code blocks
+  html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+    const l = lang || 'code';
+    return `<div class="code-block">
+      <span class="code-lang">${l}</span>
+      <button class="code-copy" onclick="copyText(this, \`${escapeBtick(code.trim())}\`)">Copy</button>
+      <pre><code>${code.trim()}</code></pre>
+    </div>`;
+  });
+
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<span class="inline-code">$1</span>');
+
+  // Headers
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+  // Bold & Italic
+  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+
+  // Blockquote
+  html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+
+  // Tables
+  html = renderTables(html);
+
+  // Unordered lists
+  html = html.replace(/((?:^- .+\n?)+)/gm, (block) => {
+    const items = block.trim().split('\n').map(l => `<li>${l.replace(/^- /,'')}</li>`).join('');
+    return `<ul>${items}</ul>`;
+  });
+
+  // Ordered lists
+  html = html.replace(/((?:^\d+\. .+\n?)+)/gm, (block) => {
+    const items = block.trim().split('\n').map(l => `<li>${l.replace(/^\d+\. /,'')}</li>`).join('');
+    return `<ol>${items}</ol>`;
+  });
+
+  // Links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+  // Horizontal rule
+  html = html.replace(/^---$/gm, '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">');
+
+  // Line breaks → paragraphs
+  html = html.replace(/\n\n+/g, '</p><p>');
+  html = html.replace(/\n/g, '<br>');
+  html = `<p>${html}</p>`;
+
+  // Fix nested block elements
+  html = html.replace(/<p>(<(?:h[1-3]|ul|ol|table|div|blockquote|hr)[^>]*>)/g, '$1');
+  html = html.replace(/(<\/(?:h[1-3]|ul|ol|table|div|blockquote)>)<\/p>/g, '$1');
+
+  return html;
+}
+
+function renderTables(html) {
+  return html.replace(/((?:^\|.+\|\n?)+)/gm, (block) => {
+    const lines = block.trim().split('\n');
+    if (lines.length < 2) return block;
+    const headers = lines[0].split('|').filter(c => c.trim()).map(c => `<th>${c.trim()}</th>`).join('');
+    const rows = lines.slice(2).map(line => {
+      const cells = line.split('|').filter(c => c.trim()).map(c => {
+        const t = c.trim();
+        if (t === '✅' || t === '✓') return `<td class="check">${t}</td>`;
+        if (t === '❌' || t === '✗') return `<td class="cross">${t}</td>`;
+        return `<td>${t}</td>`;
+      }).join('');
+      return `<tr>${cells}</tr>`;
+    }).join('');
+    return `<div class="compare-table-wrap"><table class="compare-table"><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  });
+}
+
+function escapeHtml(text) {
+  return (text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ============================================================
+// SEND MESSAGE
+// ============================================================
+async function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const rawText = input.value.trim();
+  const imageData = STATE.uploadedImage;
+
+  if (!rawText && !imageData) return;
+  if (STATE.isStreaming) return;
+
+  const apiKey = document.getElementById('api-key-input').value.trim();
+  if (!apiKey) { showToast('⚠️ Please enter your GROQ API Key'); return; }
+
+  // Create chat if needed
+  if (!STATE.currentChatId) newChat();
+  const chat = getCurrentChat();
+
+  // Remove welcome screen
+  document.getElementById('welcome') && (document.getElementById('welcome').remove());
+
+  const userText = buildUserText(rawText);
+  const userMsg = { role: 'user', content: userText, time: Date.now(), image: imageData };
+  chat.messages.push(userMsg);
+
+  // Update chat title
+  if (chat.messages.length === 1) {
+    chat.title = rawText.slice(0, 40) || 'Image Search';
+  }
+
+  // Clear input
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('char-count').textContent = '0 / 4000';
+  removeImage();
+  STATE.activeMode = null;
+  document.querySelectorAll('.tool-chip').forEach(c => c.classList.remove('active'));
+
+  saveChats();
+  renderChatList();
+
+  // Render user message
+  const area = document.getElementById('chat-area');
+  area.appendChild(createMessageElement('user', userText, userMsg.time, imageData));
+  scrollToBottom();
+
+  // Show typing
+  const typingEl = addTypingIndicator();
+
+  STATE.isStreaming = true;
+  document.getElementById('send-btn').disabled = true;
+
+  try {
+    const model = document.getElementById('model-select').value;
+    const messages = buildApiMessages(chat, imageData, userText);
+    const aiContent = await streamGroqResponse(apiKey, model, messages, typingEl);
+
+    const aiMsg = { role: 'ai', content: aiContent, time: Date.now() };
+    chat.messages.push(aiMsg);
+    saveChats();
+
+  } catch (err) {
+    typingEl.remove();
+    const errMsg = { role: 'ai', content: `**Error**: ${err.message}\n\nPlease check your API key and try again.`, time: Date.now() };
+    const chat2 = getCurrentChat();
+    if (chat2) chat2.messages.push(errMsg);
+    area.appendChild(createMessageElement('ai', errMsg.content, errMsg.time));
+    saveChats();
+  } finally {
+    STATE.isStreaming = false;
+    document.getElementById('send-btn').disabled = false;
+    scrollToBottom();
+  }
+}
+
+function buildUserText(rawText) {
+  const modePrefix = {
+    compare: '⚖️ [COMPARE MODE] ',
+    price: '📉 [PRICE HISTORY] ',
+    reviews: '⭐ [REVIEW ANALYSIS] ',
+    deals: '🏷️ [BEST DEALS] ',
+    sustainable: '🌱 [ECO MODE] ',
+    list: '🛒 [SHOPPING LIST] '
+  };
+  return (STATE.activeMode && modePrefix[STATE.activeMode] ? modePrefix[STATE.activeMode] : '') + rawText;
+}
+
+function buildApiMessages(chat, imageData, userText) {
+  const history = chat.messages.slice(0, -1).slice(-12).map(m => ({
+    role: m.role === 'ai' ? 'assistant' : 'user',
+    content: m.content
+  }));
+
+  const lastContent = imageData
+    ? [
+        { type: 'text', text: userText },
+        { type: 'image_url', image_url: { url: imageData } }
+      ]
+    : userText;
+
+  return [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...history,
+    { role: 'user', content: lastContent }
+  ];
+}
+
+// ============================================================
+// GROQ STREAMING API
+// ============================================================
+async function streamGroqResponse(apiKey, model, messages, typingEl) {
+  const area = document.getElementById('chat-area');
+
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      stream: true,
+      max_tokens: 2048,
+      temperature: 0.7
+    })
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }));
+    throw new Error(err.error?.message || `HTTP ${response.status}`);
+  }
+
+  typingEl.remove();
+
+  // Create streaming message element
+  const row = document.createElement('div');
+  row.className = 'msg-row ai';
+  const avatar = `<div class="avatar ai">🛍</div>`;
+  const bubble = document.createElement('div');
+  bubble.innerHTML = `${avatar}<div><div class="msg-bubble" id="streaming-bubble"></div></div>`;
+  area.appendChild(bubble);
+  const streamBubble = document.getElementById('streaming-bubble');
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value);
+    const lines = chunk.split('\n').filter(l => l.startsWith('data:'));
+
+    for (const line of lines) {
+      const data = line.replace('data: ', '').trim();
+      if (data === '[DONE]') continue;
+      try {
+        const parsed = JSON.parse(data);
+        const delta = parsed.choices?.[0]?.delta?.content || '';
+        if (delta) {
+          fullText += delta;
+          streamBubble.innerHTML = renderMarkdown(fullText);
+          scrollToBottom();
+        }
+      } catch (_) {}
+    }
+  }
+
+  // Add copy button & timestamp after streaming
+  const timeStr = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  const metaDiv = document.createElement('div');
+  metaDiv.className = 'msg-meta';
+  metaDiv.innerHTML = `<span class="msg-time">${timeStr}</span><button class="copy-btn" onclick="copyText(this, \`${escapeBtick(fullText)}\`)">Copy</button>`;
+  bubble.querySelector('div > div').appendChild(metaDiv);
+
+  return fullText;
+}
+
+// ============================================================
+// TYPING INDICATOR
+// ============================================================
+function addTypingIndicator() {
+  const area = document.getElementById('chat-area');
+  const row = document.createElement('div');
+  row.className = 'msg-row ai';
+  row.id = 'typing-row';
+  row.innerHTML = `
+    <div class="avatar ai">🛍</div>
+    <div class="typing-bubble">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>`;
+  area.appendChild(row);
+  scrollToBottom();
+  return row;
+}
+
+// ============================================================
+// VOICE INPUT
+// ============================================================
+function toggleVoice() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('⚠️ Voice not supported in this browser');
+    return;
+  }
+  const btn = document.getElementById('voice-btn');
+
+  if (STATE.voiceActive) {
+    STATE.recognition && STATE.recognition.stop();
+    STATE.voiceActive = false;
+    btn.classList.remove('active');
+    btn.textContent = '🎤';
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  STATE.recognition = new SpeechRecognition();
+  STATE.recognition.continuous = false;
+  STATE.recognition.interimResults = true;
+  STATE.recognition.lang = 'en-US';
+
+  STATE.recognition.onstart = () => {
+    STATE.voiceActive = true;
+    btn.classList.add('active');
+    btn.textContent = '🔴';
+    showToast('🎤 Listening...');
+  };
+
+  STATE.recognition.onresult = (e) => {
+    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+    document.getElementById('msg-input').value = transcript;
+    updateCharCount();
+    autoResize(document.getElementById('msg-input'));
+  };
+
+  STATE.recognition.onend = () => {
+    STATE.voiceActive = false;
+    btn.classList.remove('active');
+    btn.textContent = '🎤';
+  };
+
+  STATE.recognition.onerror = (e) => {
+    showToast('⚠️ Voice error: ' + e.error);
+    STATE.voiceActive = false;
+    btn.classList.remove('active');
+    btn.textContent = '🎤';
+  };
+
+  STATE.recognition.start();
+}
+
+// ============================================================
+// IMAGE UPLOAD
+// ============================================================
+function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showToast('⚠️ Please upload an image file'); return; }
+  if (file.size > 5 * 1024 * 1024) { showToast('⚠️ Image too large (max 5MB)'); return; }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    STATE.uploadedImage = e.target.result;
+    STATE.uploadedImageName = file.name;
+    document.getElementById('img-preview-thumb').src = e.target.result;
+    document.getElementById('img-preview-area').style.display = 'block';
+    document.getElementById('msg-input').placeholder = `Describe what you want to know about this product image...`;
+    showToast('🖼 Image ready to send');
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function removeImage() {
+  STATE.uploadedImage = null;
+  STATE.uploadedImageName = null;
+  document.getElementById('img-preview-area').style.display = 'none';
+  document.getElementById('img-preview-thumb').src = '';
+  document.getElementById('msg-input').placeholder = 'Ask about any product — search, compare, or get recommendations...';
+}
+
+// ============================================================
+// QUICK ACTIONS
+// ============================================================
+function showQuickCompare() {
+  setMode('compare');
+  document.getElementById('msg-input').value = 'Compare ';
+  document.getElementById('msg-input').focus();
+  showToast('⚖️ Compare mode active — type products to compare');
+}
+
+function showTrending() {
+  if (!STATE.currentChatId) newChat();
+  document.getElementById('msg-input').value = '🔥 What are the top trending products in electronics and gadgets this week? Include price ranges, ratings, and why they\'re trending.';
+  sendMessage();
+}
+
+function useSuggestion(el) {
+  const title = el.querySelector('.s-title').textContent;
+  document.getElementById('msg-input').value = title;
+  if (!STATE.currentChatId) newChat();
+  sendMessage();
+}
+
+function setMode(mode) {
+  STATE.activeMode = STATE.activeMode === mode ? null : mode;
+  document.querySelectorAll('.tool-chip').forEach(c => c.classList.remove('active'));
+  if (STATE.activeMode) {
+    event.currentTarget.classList.add('active');
+    document.getElementById('msg-input').focus();
+  }
+}
+
+// ============================================================
+// EXPORT CHAT
+// ============================================================
+function exportChat() {
+  const chat = getCurrentChat();
+  if (!chat || !chat.messages.length) { showToast('⚠️ No chat to export'); return; }
+
+  const lines = [`# ShopAI Chat Export\n`, `**Date:** ${new Date().toLocaleString()}\n`, `---\n`];
+  chat.messages.forEach(m => {
+    const role = m.role === 'user' ? '**You**' : '**ShopAI**';
+    lines.push(`${role}: ${m.content}\n\n---\n`);
+  });
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `shopai-${chat.title.replace(/\s+/g,'-').slice(0,30)}.md`;
+  a.click();
+  showToast('📥 Chat exported!');
+}
+
+// ============================================================
+// UI UTILITIES
+// ============================================================
+function scrollToBottom() {
+  const area = document.getElementById('chat-area');
+  requestAnimationFrame(() => { area.scrollTop = area.scrollHeight; });
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+  updateCharCount();
+}
+
+function updateCharCount() {
+  const len = document.getElementById('msg-input').value.length;
+  document.getElementById('char-count').textContent = `${len} / 4000`;
+}
+
+function copyText(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied';
+    showToast('✓ Copied to clipboard!');
+    setTimeout(() => btn.textContent = orig, 1500);
+  }).catch(() => showToast('⚠️ Copy failed'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('theme-toggle').textContent = isDark ? '☀️' : '🌙';
+  localStorage.setItem('shopai_theme', isDark ? 'light' : 'dark');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// ============================================================
+// INLINE CHART (SVG SPARKLINE)
+// ============================================================
+function renderSparkline(prices, labels) {
+  const w = 400, h = 100, pad = 15;
+  const min = Math.min(...prices), max = Math.max(...prices);
+  const range = max - min || 1;
+  const pts = prices.map((p, i) => {
+    const x = pad + (i / (prices.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((p - min) / range) * (h - pad * 2);
+    return `${x},${y}`;
+  }).join(' ');
+
+  return `<div class="price-chart">
+    <div class="chart-title">📈 Price History (Last 6 Months)</div>
+    <svg class="chart-svg" viewBox="0 0 ${w} ${h}">
+      <polyline fill="none" stroke="var(--accent)" stroke-width="2" points="${pts}"/>
+      ${prices.map((p, i) => {
+        const x = pad + (i / (prices.length - 1)) * (w - pad * 2);
+        const y = h - pad - ((p - min) / range) * (h - pad * 2);
+        return `<circle cx="${x}" cy="${y}" r="3" fill="var(--accent)"/>
+        <text x="${x}" y="${h - 2}" font-size="9" fill="var(--muted)" text-anchor="middle">${labels[i]}</text>`;
+      }).join('')}
+    </svg>
+  </div>`;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  // Restore theme
+  const savedTheme = localStorage.getItem('shopai_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  document.getElementById('theme-toggle').textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+
+  renderChatList();
+  showWelcome();
+
+  // Load most recent chat if any
+  if (STATE.chats.length > 0) {
+    STATE.currentChatId = STATE.chats[0].id;
+    renderChatList();
+    renderMessages();
+  }
+
+  // Character count
+  document.getElementById('msg-input').addEventListener('input', updateCharCount);
+
+  console.log('🛍 ShopAI Intelligent Shopping Agent initialized');
+  console.log('💡 Powered by GROQ LLM API');
+  console.log('🔧 Ready for IBM watsonx Orchestrate / Langflow integration');
+}
+
+init();
+</script>
+
+<!-- IBM Bob Footer -->
+<div style="position:fixed;bottom:0;left:0;right:0;text-align:center;font-size:11px;color:var(--muted);padding:4px;background:var(--bg);border-top:1px solid var(--border);pointer-events:none;z-index:9999;">
+  Made with IBM Bob &nbsp;·&nbsp; ShopAI Intelligent Shopping Agent &nbsp;·&nbsp; Powered by GROQ
+</div>
+</body>
+</html>
