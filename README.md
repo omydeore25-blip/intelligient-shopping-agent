@@ -1,7 +1,7 @@
 # intelligient-shopping-agent
 AI-powered Intelligent Shopping Agent using IBM watsonx Orchestrate, watsonx.ai, Granite Models, and RAG to provide personalized product recommendations, price intelligence, product comparison, and explainable shopping decisions.
 
-Proposed Solution: AI-Powered Intelligent Shopping Agent
+# Proposed Solution: AI-Powered Intelligent Shopping Agent
 The proposed solution is a multi-agent AI-powered Intelligent Shopping Agent built using IBM watsonx Orchestrate, IBM watsonx.ai, and Granite Models to provide personalized, real-time shopping assistance. The system addresses challenges such as product overload, scattered reviews, price fluctuations, and difficulty in making informed purchase decisions through an intelligent, modular architecture.
 At its core, the solution uses a Retrieval-Augmented Generation (RAG) pipeline to fetch accurate and up-to-date product information from trusted e-commerce platforms, manufacturer websites, and review sources. Product specifications, customer reviews, ratings, pricing, and availability are embedded and stored in a vector database, enabling the system to retrieve, compare, and summarize relevant product insights using Granite models.
 The system consists of four key agents:
@@ -14,6 +14,10 @@ The solution includes a user-friendly dashboard (built with React or Streamlit) 
 
 # Project Screenshot 
 
-1. Home Page
+1. ShopAI Dashboard
    <img width="1918" height="1003" alt="1000127600" src="https://github.com/user-attachments/assets/90145d39-b7f1-440c-a248-85185d00bc22" />
 
+2. ShopAI in Action
+   <img width="959" height="495" alt="Screenshot 2026-07-28 224144" src="https://github.com/user-attachments/assets/991ebcb1-7e91-41d0-9906-25e25f4fc529" />
+
+   <img width="959" height="539" alt="Screenshot 2026-07-29 115415" src="https://github.com/user-attachments/assets/0e146ec0-49f4-47a1-9db9-c458eb1e4fde" />
