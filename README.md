@@ -10,3 +10,10 @@ Personalized Recommendation Agent generates tailored product recommendations bas
 Price & Deal Intelligence Agent continuously monitors product prices across multiple platforms, identifies discounts, cashback offers, coupons, and price-drop alerts, ensuring users get the best value for money.
 Comparison & Purchase Advisor Agent compares shortlisted products based on price, features, quality, customer sentiment, warranty, and value for money, then provides a final buying recommendation with clear reasoning.
 The solution includes a user-friendly dashboard (built with React or Streamlit) where users can search products, compare multiple options, track price history, save wishlists, receive personalized deal notifications, and monitor their shopping preferences.
+
+
+# Project Screenshot 
+
+1. Home Page
+   <img width="1918" height="1003" alt="1000127600" src="https://github.com/user-attachments/assets/90145d39-b7f1-440c-a248-85185d00bc22" />
+
